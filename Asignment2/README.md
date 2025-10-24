@@ -11,7 +11,7 @@ This project demonstrates optimization of a complex SQL query using:
 - `queries/optimized.sql`
 
 ## Preparation part
-I asked ChatGPT to genarate a python code for creating three csv files, with 1 000 000 rows in each and then trasfered it to MySQL Workbench where i hava preceeded all following work.
+I asked ChatGPT to genarate a python code for creating three csv files, with 1 000 000 rows in each and then trasfered it to MySQL Workbench where I heva proceeded with all following work.
 
 ## NON Optimized Queries
 Again, ChatGPT was asked to create three queries for already merged tables.
