@@ -1,4 +1,4 @@
-##Query Optimisation 
+## Query Optimisation 
 
 This project demonstrates optimization of a complex SQL query using:
 - EXPLAIN ANALYZE
@@ -10,7 +10,7 @@ This project demonstrates optimization of a complex SQL query using:
 - `queries/non_optimized.sql`
 - `queries/optimized.sql`
 
-##Preparation part
+## Preparation part
 I asked ChatGPT to genarate a python code for creating three csv files, with 1 000 000 rows in each and then trasfered it to MySQL Workbench where i hava preceeded all following work.
 
 ## NON Optimized Queries
@@ -22,7 +22,7 @@ When running them with EXPLAIN ANALYZE, I have discovered the time needed to per
 
  Overall code was hard to read and observe.
 
- ## Opromized Queeries
+ ## Optimized Queries
 I have created another tab and copied the same queries (written by AI) for futher their optimisation.
 1. For the first one (total quantity of orders), I have added indexes, such as: idx_products_price, idx_orders_product_id and idx_orders_user_id. With adding them to my query the perfoming has become a little bit faster with the time for running 23 seconds.
 2. For the second one (quantity of orders for each customer), I have used CTE for counting the quatity of orders for each customer. As a result the speed of perfoming has increased, and it only took 15 seconds compered to 28 sec of non optimised one.
@@ -30,7 +30,7 @@ I have created another tab and copied the same queries (written by AI) for futhe
 
  Every query was analysed using EXPLAIN ANALYZE. 
 
-##RESULT
+## RESULT
 
 For such tables with 1 000 000 rows the best was to optimize is to use indexing or cummon table expration (CTE), it can make your query run two times faster. The most successful in its job was CTE.
 It also, gave queries better look, and made them more readable.
