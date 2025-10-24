@@ -1,0 +1,56 @@
+CREATE DATABASE Asignment2;
+USE Asignment2;
+
+SELECT COUNT(*) FROM orders;
+SELECT COUNT(*) FROM products;
+SELECT COUNT(*) FROM users;
+
+SELECT 
+    o.order_id,
+    u.name AS user_name,
+    u.email,
+    p.name AS product_name,
+    p.price,
+    o.quantity,
+    o.order_date
+FROM orders o
+JOIN users u ON o.user_id = u.user_id
+JOIN products p ON o.product_id = p.product_id
+LIMIT 20;
+
+EXPLAIN ANALYZE #30.02
+SELECT 
+    o.order_id,
+    u.name AS customer,
+    SUM(o.quantity * p.price) AS total_price,
+    o.order_date
+FROM orders o
+JOIN users u ON o.user_id = u.user_id
+JOIN products p ON o.product_id = p.product_id
+GROUP BY o.order_id, u.name, o.order_date
+ORDER BY total_price DESC
+LIMIT 20;
+
+EXPLAIN ANALYZE #28,08 sec
+SELECT 
+    u.user_id,
+    u.name,
+    COUNT(o.order_id) AS orders_count
+FROM users u
+LEFT JOIN orders o ON u.user_id = o.user_id
+GROUP BY u.user_id, u.name
+ORDER BY orders_count DESC
+LIMIT 20;
+
+
+EXPLAIN ANALYZE #26,13 sec
+SELECT 
+    p.product_id,
+    p.name AS product_name,
+    COUNT(o.order_id) AS times_ordered,
+    SUM(o.quantity) AS total_quantity_sold
+FROM products p
+JOIN orders o ON p.product_id = o.product_id
+GROUP BY p.product_id, p.name
+ORDER BY total_quantity_sold DESC
+LIMIT 20;
