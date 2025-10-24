@@ -32,5 +32,5 @@ I have created another tab and copied the same queries (written by AI) for futhe
 
 ## RESULT
 
-For such tables with 1 000 000 rows the best was to optimize is to use indexing or cummon table expration (CTE), it can make your query run two times faster. The most successful in its job was CTE.
+For such tables with 1 000 000 rows the best was to optimize is to use indexing or common table expression (CTE), they can make your query run two times faster. The most successful in its job was CTE.
 It also, gave queries better look, and made them more readable.
