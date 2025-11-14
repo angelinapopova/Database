@@ -1,0 +1,34 @@
+{
+  "raw.fact": {
+    "stage": "stg.fact",
+    "mart": "mart.orders"
+  },
+  "raw.restaurant": {
+    "stage": "stg.restaurant",
+    "mart": "mart.product"
+  },
+  "raw.product": {
+    "stage": "stg.product",
+    "mart": "mart.product"
+  },
+  "raw.payment": {
+    "stage": "stg.payment",
+    "mart": "mart.payment"
+  },
+  "raw.promo": {
+    "stage": "stg.promo",
+    "mart": null
+  },
+  "raw.courier": {
+    "stage": "stg.courier",
+    "mart": "mart.courier"
+  },
+  "raw.vehicle": {
+    "stage": "stg.vehicle",
+    "mart": null
+  },
+  "raw.client": {
+    "stage": "stg.client",
+    "mart": "mart.client"
+  }
+}
