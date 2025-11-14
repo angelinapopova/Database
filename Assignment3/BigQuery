@@ -1,0 +1,354 @@
+CREATE SCHEMA IF NOT EXISTS raw;
+CREATE SCHEMA IF NOT EXISTS stg;
+CREATE SCHEMA IF NOT EXISTS mart;
+
+
+CREATE OR REPLACE TABLE `raw.fact` (
+  order_id INT64,
+  order_amount FLOAT64,
+  distance_km FLOAT64,
+  rating_o FLOAT64,
+  payment_date DATETIME,
+  courier_id INT64,
+  client_id INT64,
+  restaurant_id INT64,
+  product_id INT64,
+  promo_id INT64,
+  vehicle_id INT64
+);
+
+INSERT INTO `raw.fact`
+VALUES
+  (1001, 320, 3.4, 4.9, DATETIME "2025-01-15 12:45:00", 201, 301, 501, 9001, 301, 11),
+  (1002, 180, 1.8, 4.5, DATETIME "2025-01-16 09:20:00", 203, 302, 503, 9002, NULL, 12),
+  (1003, 540, 5.2, 4.7, DATETIME "2025-01-16 18:30:00", 205, 303, 502, 9003, 302, 14),
+  (1004, 260, 2.1, 5.0, DATETIME "2025-01-17 14:10:00", 202, 304, 504, 9004, NULL, 11),
+  (1005, 410, 4.6, 4.2, DATETIME "2025-01-17 20:55:00", 201, 305, 505, 9005, 303, 11);
+
+
+CREATE OR REPLACE TABLE `raw.restaurant` (
+  restaurant_id INT64,
+  name_res STRING,
+  type STRING,
+  location STRING,
+  rating_r FLOAT64
+);
+INSERT INTO `raw.restaurant`
+VALUES
+  (501, "Pizza Land", "Italian", "Kyiv", 4.7),
+  (502, "Sushi Star", "Japanese", "Lviv", 4.5),
+  (503, "Burger Box", "American", "Kyiv", 4.3),
+  (504, "Fresh Bar", "Healthy", "Odesa", 4.8),
+  (505, "Taco Time", "Mexican", "Kharkiv", 4.4);
+
+CREATE OR REPLACE TABLE `raw.product` (
+  product_id INT64,
+  product_name STRING,
+  category STRING,
+  price FLOAT64,
+  restaurant_id INT64
+);
+INSERT INTO `raw.product`
+VALUES
+  (9001, "Pepperoni Pizza", "Pizza", 320, 501),
+  (9002, "California Roll", "Sushi", 180, 502),
+  (9003, "Double Burger", "Burger", 260, 503),
+  (9004, "Green Smoothie", "Drinks", 140, 504),
+  (9005, "Beef Taco", "Mexican", 220, 505);
+
+CREATE OR REPLACE TABLE `raw.vehicle` (
+  vehicle_id INT64,
+  vehicle_type STRING
+);
+INSERT INTO `raw.vehicle`
+VALUES
+  (11, "Bike"),
+  (12, "Scooter"),
+  (13, "Motorbike"),
+  (14, "Car"),
+  (15, "Electric Bike");
+
+CREATE OR REPLACE TABLE `raw.courier` (
+  courier_id INT64,
+  name_cour STRING,
+  rating_c FLOAT64,
+  vehicle_id INT64,
+  city STRING
+);
+INSERT INTO `raw.courier`
+VALUES
+  (201, "Oleh K.", 4.8, 11, "Kyiv"),
+  (202, "Anna P.", 4.6, 11, "Lviv"),
+  (203, "Maksym R.", 4.4, 12, "Kyiv"),
+  (204, "Iryna S.", 4.9, 13, "Odesa"),
+  (205, "Dmytro T.", 4.7, 14, "Kharkiv");
+
+CREATE OR REPLACE TABLE `raw.client` (
+  client_id INT64,
+  name_client STRING,
+  gender STRING,
+  location STRING,
+  loyalty_points FLOAT64
+);
+INSERT INTO `raw.client`
+VALUES
+  (301, "Kateryna", "Female", "Kyiv", 120),
+  (302, "Oleh", "Male", "Lviv", 80),
+  (303, "Sofiia", "Female", "Kharkiv", 150),
+  (304, "Ivan", "Male", "Odesa", 60),
+  (305, "Maria", "Female", "Kyiv", 200);
+
+CREATE OR REPLACE TABLE `raw.promo` (
+  promo_id INT64,
+  promo_name STRING,
+  start_date DATETIME,
+  end_date DATETIME,
+  discount FLOAT64
+);
+INSERT INTO `raw.promo`
+VALUES
+  (301, "New Year Deal", DATETIME "2025-01-01 00:00:00", DATETIME "2025-01-10 23:59:00", 15),
+  (302, "Student Sale", DATETIME "2025-02-01 00:00:00", DATETIME "2025-02-28 23:59:00", 10),
+  (303, "Weekend Promo", DATETIME "2025-01-15 00:00:00", DATETIME "2025-01-20 23:59:00", 20),
+  (304, "Free Delivery", DATETIME "2025-03-01 00:00:00", DATETIME "2025-03-05 23:59:00", 100),
+  (305, "Coffee Bonus", DATETIME "2025-04-01 00:00:00", DATETIME "2025-04-30 23:59:00", 5);
+
+CREATE OR REPLACE TABLE `raw.payment` (
+  payment_id INT64,
+  order_id INT64,
+  payment_date DATETIME,
+  payment_amount FLOAT64,
+  payment_method STRING,
+  payment_status STRING,
+  promo_id INT64
+);
+
+INSERT INTO `raw.payment`
+VALUES
+  (7001, 1001, DATETIME "2025-01-15 12:45:00", 320, "card", "success", 301),
+  (7002, 1002, DATETIME "2025-01-16 09:20:00", 180, "cash", "success", NULL),
+  (7003, 1003, DATETIME "2025-01-16 18:30:00", 540, "card", "success", 302),
+  (7004, 1004, DATETIME "2025-01-17 14:10:00", 260, "card", "failed", NULL),
+  (7005, 1005, DATETIME "2025-01-17 20:55:00", 410, "card", "success", 303);
+
+
+CREATE OR REPLACE TABLE stg.fact AS
+SELECT DISTINCT
+ order_id,
+ order_amount,
+ ROUND(IFNULL(distance_km,0), 2) AS distance_km,
+ ROUND(IFNULL(rating_o,0), 1) AS rating,
+ payment_date,
+ courier_id,
+ client_id,
+ restaurant_id,
+ product_id,
+ IFNULL(promo_id, 0) AS promo_id,
+ vehicle_id
+FROM raw.fact;
+
+CREATE OR REPLACE TABLE stg.restaurant AS
+SELECT DISTINCT
+ restaurant_id,
+ name_res AS name,
+ type AS cuisine_type,
+ location,
+ rating_r AS rating
+FROM raw.restaurant;
+
+CREATE OR REPLACE TABLE stg.product AS
+SELECT DISTINCT
+ product_id,
+ product_name AS name,
+ category,
+ price,
+ restaurant_id
+FROM raw.product;
+
+CREATE OR REPLACE TABLE stg.vehicle AS
+SELECT DISTINCT
+ vehicle_id,
+ vehicle_type AS type
+FROM raw.vehicle;
+
+CREATE OR REPLACE TABLE stg.courier AS
+SELECT DISTINCT
+ courier_id,
+ name_cour AS name,
+ rating_c AS rating,
+ vehicle_id,
+ city
+FROM raw.courier;
+
+CREATE OR REPLACE TABLE stg.client AS
+SELECT DISTINCT
+ client_id,
+ name_client AS name,
+ gender,
+ location,
+ loyalty_points
+FROM raw.client;
+
+CREATE OR REPLACE TABLE stg.promo AS
+SELECT DISTINCT
+ promo_id,
+ promo_name AS name,
+ start_date,
+ end_date,
+ discount
+FROM raw.promo;
+
+CREATE OR REPLACE TABLE stg.payment AS
+SELECT DISTINCT
+ payment_id,
+ order_id,
+ payment_date,
+ payment_amount,
+ payment_method,
+ payment_status,
+ promo_id
+FROM raw.payment;
+
+CREATE OR REPLACE TABLE mart.orders AS
+SELECT
+ order_id,
+ order_amount,
+ distance_km,
+ rating AS order_rating,
+ payment_date,
+ courier_id,
+ client_id,
+ restaurant_id,
+ product_id,
+ promo_id,
+ vehicle_id
+FROM stg.fact;
+
+CREATE OR REPLACE TABLE mart.product AS
+SELECT
+ p.product_id,
+ p.name AS product_name,
+ p.category,
+ p.price,
+ p.restaurant_id,
+ r.name AS restaurant_name,
+ r.cuisine_type,
+ r.location AS restaurant_location,
+ r.rating AS restaurant_rating
+FROM stg.product p
+LEFT JOIN stg.restaurant r
+ ON p.restaurant_id = r.restaurant_id;
+
+CREATE OR REPLACE TABLE mart.courier_scd2 (
+courier_id INT,
+courier_name STRING,
+courier_rating FLOAT64,
+city STRING,
+vehicle_id INT,
+vehicle_type STRING,
+start_date DATE,
+end_date DATE,
+is_current BOOL
+);
+
+MERGE INTO mart.courier_scd2 tgt #target
+USING (
+SELECT
+c.courier_id,
+c.name AS courier_name,
+c.rating AS courier_rating,
+c.city,
+c.vehicle_id,
+v.type AS vehicle_type
+FROM stg.courier c
+LEFT JOIN stg.vehicle v USING (vehicle_id)
+) src #source
+ON tgt.courier_id = src.courier_id AND tgt.is_current = TRUE
+WHEN MATCHED AND (
+tgt.courier_name != src.courier_name
+OR tgt.courier_rating != src.courier_rating
+OR tgt.city != src.city
+OR tgt.vehicle_id != src.vehicle_id
+)
+THEN UPDATE SET
+end_date = CURRENT_DATE - 1,
+is_current = FALSE
+WHEN NOT MATCHED THEN
+INSERT (
+courier_id, courier_name, courier_rating, city,
+vehicle_id, vehicle_type, start_date, end_date, is_current
+)
+VALUES (
+src.courier_id, src.courier_name, src.courier_rating, src.city,
+src.vehicle_id, src.vehicle_type,
+CURRENT_DATE, DATE '9999-12-31', TRUE
+);
+
+CREATE OR REPLACE TABLE mart.payment AS
+SELECT
+ pay.payment_id,
+ pay.order_id,
+ pay.payment_date,
+ pay.payment_amount,
+ pay.payment_method,
+ pay.payment_status
+ pay.promo_id,
+ pr.name AS promo_name,
+ pr.discount,
+ pr.start_date,
+ pr.end_date
+FROM stg.payment pay
+LEFT JOIN stg.promo pr
+ ON pay.promo_id = pr.promo_id;
+
+CREATE OR REPLACE TABLE mart.client AS
+SELECT
+ client_id,
+ name,
+ gender,
+ location,
+ loyalty_points
+FROM stg.client;
+
+
+#AOV per restaurant
+SELECT
+ p.restaurant_id,
+ p.restaurant_name,
+ p.restaurant_rating,
+ COUNT(o.order_id) AS total_orders,
+ ROUND(AVG(o.order_amount), 2) AS AOV
+FROM mart.orders o
+LEFT JOIN mart.product p
+ ON o.product_id = p.product_id
+GROUP BY
+ p.restaurant_id,
+ p.restaurant_name,
+ p.restaurant_rating
+ORDER BY AOV DESC;
+
+
+#Top-Selling Products per Category
+WITH product_sales AS(
+ SELECT
+ p.category,
+ p.product_name,
+ COUNT(order_id) as total_orders,
+ ROW_NUMBER() OVER (
+ PARTITION BY p.category
+ ORDER BY COUNT(o.order_id) DESC
+ ) AS rn
+ FROM mart.orders o
+ LEFT JOIN mart.product p
+ ON o.product_id = p.product_id
+ GROUP BY
+ p.category,
+ p.product_name)
+SELECT
+ category,
+ product_name,
+ total_orders,
+ rn AS rank
+FROM product_sales
+WHERE rn = 1
+ORDER BY category;
