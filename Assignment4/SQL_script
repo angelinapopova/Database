@@ -1,0 +1,126 @@
+CREATE TABLE raw_games_json AS
+    SELECT * FROM read_json('C:\Users\Acer\OneDrive\Documents\DataBase\steam_2025_5k-dataset-games_20250831.json',
+                  maximum_object_size = 500000000)
+
+SELECT
+    raw_games_json.metadata.run_start_timestamp_utc AS run_start,
+    raw_games_json.metadata.run_end_timestamp_utc AS run_end,
+    raw_games_json.metadata.run_duration_seconds AS duration_seconds,
+    raw_games_json.metadata.target_game_count AS target_count,
+    raw_games_json.metadata.successful_games_found AS games_found,
+    raw_games_json.metadata.api_key_used AS api_key
+FROM raw_games_json;
+
+
+SELECT
+    games_list.appid,
+    games_list.app_details.data.fullgame.appid AS fullgame_appid,
+    games_list.name_from_applist AS game_name,
+    games_list.app_details.data.fullgame.name AS fullgame_name,
+    games_list.app_details.success AS fetch_successful,
+    games_list.app_details.fetched_at AS fetched_timestamp,
+    COALESCE(games_list.app_details.data.type:: VARCHAR, 'Other') AS game_type,
+    games_list.app_details.data.steam_appid AS steam_app_id,
+    games_list.app_details.data.is_free AS is_free,
+    games_list.app_details.data.required_age AS required_age,
+    games_list.app_details.data.header_image AS header_image,
+    games_list.app_details.data.website AS website,
+    games_list.app_details.data.platforms.windows AS windows,
+    games_list.app_details.data.platforms.mac AS mac,
+    games_list.app_details.data.platforms.linux AS linux,
+    games_list.app_details.data.release_date.date AS release_date,
+    games_list.app_details.data.release_date.coming_soon AS coming_soon,
+    games_list.app_details.data.support_info.email AS support_email,
+    games_list.app_details.data.support_info.url AS support_url,
+    COALESCE(games_list.app_details.data.pc_requirements.minimum::VARCHAR, '-') AS pc_min_requirements,
+    COALESCE(games_list.app_details.data.pc_requirements.recommended::VARCHAR, '-') AS pc_rec_requirements,
+    COALESCE(games_list.app_details.data.ratings.dejus.rating::VARCHAR, '-') AS dejus_rating,
+    COALESCE(games_list.app_details.data.ratings.dejus.required_age::VARCHAR, '-') AS dejus_age,
+    COALESCE(games_list.app_details.data.ratings.dejus.descriptors:: VARCHAR, '-') AS dejus_descriptors,
+    COALESCE(games_list.app_details.data.ratings.steam_germany.rating:: VARCHAR, '-') AS germany_rating,
+    COALESCE(games_list.app_details.data.ratings.steam_germany.required_age:: VARCHAR, '-') AS germany_age,
+    COALESCE(games_list.app_details.data.ratings.steam_germany.descriptors:: VARCHAR, '-') AS germany_descriptors,
+    UNNEST(games_list.app_details.data.developers) AS developer,
+    COALESCE(UNNEST(games_list.app_details.data.publishers)::VARCHAR, 'Unknown') AS publisher,
+    unnest.id AS category_id,
+    unnest.description AS category_description
+
+FROM (
+    SELECT
+        UNNEST(games) AS games_list
+    FROM raw_games_json
+),
+UNNEST(games_list.app_details.data.categories)
+WHERE games_list.app_details.data.fullgame IS NOT NULL;
+
+SELECT
+    COALESCE(games_list.app_details.data.type:: VARCHAR, 'Other') AS game_type,
+    COUNT(*) AS count
+FROM (
+    SELECT UNNEST(games) AS games_list
+    FROM raw_games_json
+)
+GROUP BY game_type
+ORDER BY count DESC;
+
+--- This query groups all games by their type (e.g., “game”, “dlc”, “demo”),
+-- replacing missing values with “Other,” and counts how many games belong to each type.
+-- It then sorts the results to show which game types appear most frequently in the dataset.
+
+
+SELECT
+    SUM(CASE WHEN games_list.app_details.data.platforms.windows THEN 1 ELSE 0 END) AS windows_games,
+    SUM(CASE WHEN games_list.app_details.data.platforms.mac THEN 1 ELSE 0 END) AS mac_games,
+    SUM(CASE WHEN games_list.app_details.data.platforms.linux THEN 1 ELSE 0 END) AS linux_games
+FROM (
+    SELECT UNNEST(games) AS games_list
+    FROM raw_games_json
+);
+
+---This query counts how many games are available on each platform (Windows, macOS, and Linux)
+-- by summing a “1” whenever the game supports that platform.It returns a single row showing
+-- the total number of games for each operating system.
+
+SELECT
+    COALESCE(games_list.app_details.data.is_free::VARCHAR, 'undefined') AS is_free,
+    COUNT(*) AS count
+FROM (
+    SELECT UNNEST(games) AS games_list
+    FROM raw_games_json
+)
+GROUP BY is_free;
+
+---This query groups games based on whether they are free or not (using “undefined” if
+-- the value is missing) and counts how many games fall into each category.
+
+SELECT
+    EXTRACT(
+        YEAR FROM TRY_STRPTIME(games_list.app_details.data.release_date.date, '%b %d, %Y')
+    ) AS release_year,
+    COUNT(*) AS count
+FROM (
+    SELECT UNNEST(games) AS games_list
+    FROM raw_games_json
+)
+WHERE TRY_STRPTIME(games_list.app_details.data.release_date.date, '%b %d, %Y') IS NOT NULL
+GROUP BY release_year
+ORDER BY release_year DESC;
+
+---This query extracts the release year from each game’s release date (skipping entries without a valid date)
+-- and counts how many games were released in each year. It then orders the results to show
+-- the most recent release years first.
+
+SELECT
+    dev AS developer,
+    COUNT(*) AS number_of_games
+FROM (
+    SELECT UNNEST(games) AS g
+    FROM raw_games_json
+),
+UNNEST(g.app_details.data.developers) AS dev(dev)
+GROUP BY dev
+ORDER BY number_of_games DESC;
+
+
+---This query lists every developer in the dataset and counts how many games each
+-- one has worked on. The results are sorted so the most prolific developers appear at the top.
